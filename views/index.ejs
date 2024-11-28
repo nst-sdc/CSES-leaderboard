@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300..900;1,300..900&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leaderboard</title>
+    <link rel="stylesheet" href="leaderboard.css">
+</head>
+<body>
+    <div class="leaderboard">
+        <h1 class="leaderboard-title">Leaderboard</h1>
+        <table class="leaderboard-table">
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Name</th>
+                    <th>Activity</th>
+                    <th>Streak</th>
+                    <th>Question Solved</th>
+                </tr>
+            </thead>
+            <tbody>
+
+
+                <% for (let index = 0; index < data.length; index++) { %>
+                    <tr>
+                        <td>#<%= index +1 %></td>
+                        <td><%= data[index].name  %></td>
+                        <td>
+                            <div class="activity-grid">
+                                <% data[index].timeline.forEach(element => { %>
+                                    <% if(element) { %>
+                                        <div class="active"></div>
+                                    <% } else { %>
+                                        <div></div>
+                                    <% } %>
+                               <% }); %>
+                            </div>
+                        </td>
+                        <td><%= data[index].streak %></td>
+                        <td><%= data[index].questionSolved %></td>
+
+                    </tr>
+                <% } %>
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
