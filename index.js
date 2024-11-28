@@ -5,13 +5,13 @@ const moment = require('moment'); // require
 moment().format();
 
 const app = express()
-const port = 3000
+const port = process.env.PORT || 3000
 
 app.set('view engine' , 'ejs')
 app.use(express.static("public"))
 app.use(express.json());
 
-const mongoURI = "mongodb+srv://kanishkranjan17:kJjPjGDTqnlWZWEi@leaderboard.5gmx8.mongodb.net/leaderboard";
+const mongoURI = process.env.MONGODB_URI || "mongodb+srv://kanishkranjan17:kJjPjGDTqnlWZWEi@leaderboard.5gmx8.mongodb.net/leaderboard";
 const databaseName = "leaderboard";
 
 
