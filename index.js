@@ -9,9 +9,14 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 // Middleware
+app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
+
+// Log environment info
+console.log('Current directory:', __dirname);
+console.log('Views directory:', path.join(__dirname, 'views'));
 
 const mongoURI = process.env.MONGODB_URI || "mongodb+srv://kanishkranjan17:kJjPjGDTqnlWZWEi@leaderboard.5gmx8.mongodb.net/leaderboard";
 
