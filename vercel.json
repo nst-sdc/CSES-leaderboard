@@ -6,6 +6,10 @@
             "use": "@vercel/node"
         },
         {
+            "src": "fecher.py",
+            "use": "@vercel/python"
+        },
+        {
             "src": "public/**",
             "use": "@vercel/static"
         }
@@ -16,8 +20,18 @@
             "dest": "/public/$1"
         },
         {
+            "src": "/fetch",
+            "dest": "fecher.py"
+        },
+        {
             "src": "/.*",
             "dest": "index.js"
+        }
+    ],
+    "crons": [
+        {
+            "path": "/fetch",
+            "schedule": "0 */3 * * *"
         }
     ]
 }
