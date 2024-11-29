@@ -74,6 +74,9 @@ app.get("/", async (req, res) => {
             };
         });
         
+        // Sort users by questionSolved in descending order
+        usersData.sort((a, b) => b.questionSolved - a.questionSolved);
+        
         res.render("index", { data: usersData });
     } catch (error) {
         console.error("Error fetching data:", error);
