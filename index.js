@@ -58,12 +58,8 @@ app.get("/", async (req, res) => {
                     .subtract(index + 1, 'days')
                     .format('DD/MM/YYYY');
                 
-                if (userData.solved && 
-                    userData.solved[reqDate] !== undefined && 
-                    userData.solved[prevDate] !== undefined) {
-                    timeline[noOfDaysInWeek - index - 1] = 
-                        parseInt(userData.solved[reqDate]) > parseInt(userData.solved[prevDate]);
-                }
+                    if(reqDate in userData['solved'] && prevDate in userData['solved'])
+                      timeline[noOfDaysInWeek - index -1] = (parseInt(userData['solved'][reqDate]) > parseInt(userData['solved'][prevDate])) ;
             }
             
             return {
