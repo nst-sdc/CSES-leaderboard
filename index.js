@@ -2,6 +2,8 @@ const express = require('express');
 const mongoose = require("mongoose");
 const moment = require('moment');
 const path = require('path');
+const cron = require('node-cron');
+const { updateLeaderboard } = require('./fetcher');
 
 moment().format();
 
@@ -51,12 +53,8 @@ app.get("/", async (req, res) => {
             const noOfDaysInWeek = 7;
             
             for (let index = 0; index < noOfDaysInWeek; index++) {
-                const reqDate = moment("2024-12-08", "YYYY-MM-DD")
-                    .subtract(index, 'days')
-                    .format('DD/MM/YYYY');
-                const prevDate = moment("2024-12-08", "YYYY-MM-DD")
-                    .subtract(index + 1, 'days')
-                    .format('DD/MM/YYYY');
+                const reqDate = moment().subtract(index, 'days').format('DD/MM/YYYY');
+                const prevDate = moment().subtract(index + 1, 'days').format('DD/MM/YYYY');
                 
                 if (userData.solved && 
                     userData.solved[reqDate] !== undefined && 
@@ -84,23 +82,53 @@ app.get("/", async (req, res) => {
     }
 });
 
+// Manual update endpoint (protected)
+app.post("/update", async (req, res) => {
+    const apiKey = req.headers['x-api-key'];
+    if (apiKey !== process.env.API_KEY) {
+        return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+        await updateLeaderboard();
+        res.json({ status: "success" });
+    } catch (error) {
+        console.error("Error in manual update:", error);
+        res.status(500).json({ error: "Update failed" });
+    }
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
     console.error(err.stack);
-    res.status(500).json({ error: "Something broke!", details: err.message });
+    res.status(500).send('Something broke!');
+});
+
+// Schedule the update every 3 hours
+cron.schedule('0 */3 * * *', async () => {
+    console.log('Running scheduled update');
+    try {
+        await updateLeaderboard();
+    } catch (error) {
+        console.error('Scheduled update failed:', error);
+    }
 });
 
 // Start server
 const startServer = async () => {
+    await connectDB();
+    
+    // Initial update on server start
     try {
-        await connectDB();
-        app.listen(port, () => {
-            console.log(`Server running on http://localhost:${port}`);
-        });
+        await updateLeaderboard();
+        console.log('Initial update completed');
     } catch (error) {
-        console.error("Server startup error:", error);
-        process.exit(1);
+        console.error('Initial update failed:', error);
     }
+    
+    app.listen(port, () => {
+        console.log(`Server is running on port ${port}`);
+    });
 };
 
 startServer();
