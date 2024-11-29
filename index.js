@@ -51,10 +51,10 @@ app.get("/", async (req, res) => {
             const noOfDaysInWeek = 7;
             
             for (let index = 0; index < noOfDaysInWeek; index++) {
-                const reqDate = moment("2024-12-08", "YYYY-MM-DD")
+                const reqDate = moment()
                     .subtract(index, 'days')
                     .format('DD/MM/YYYY');
-                const prevDate = moment("2024-12-08", "YYYY-MM-DD")
+                const prevDate = moment()
                     .subtract(index + 1, 'days')
                     .format('DD/MM/YYYY');
                 
