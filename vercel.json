@@ -4,33 +4,17 @@
         {
             "src": "index.js",
             "use": "@vercel/node"
-        },
-        {
-            "src": "fecher.py",
-            "use": "@vercel/python"
-        },
-        {
-            "src": "public/**",
-            "use": "@vercel/static"
         }
     ],
     "routes": [
         {
-            "src": "/public/(.*)",
-            "dest": "/public/$1"
-        },
-        {
-            "src": "/fetch",
-            "dest": "fecher.py"
-        },
-        {
-            "src": "/.*",
+            "src": "/(.*)",
             "dest": "index.js"
         }
     ],
     "crons": [
         {
-            "path": "/fetch",
+            "path": "/update",
             "schedule": "0 */3 * * *"
         }
     ]
