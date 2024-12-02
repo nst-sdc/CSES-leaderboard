@@ -65,14 +65,17 @@ async function updateMongoDB(users) {
         return false;
     }
 
+    const session = await mongoose.startSession();
     try {
+        session.startTransaction();
+        
         const collection = mongoose.connection.collection('CSES');
         const todayDate = moment().format('DD/MM/YYYY');
         const yesterdayDate = moment().subtract(1, 'days').format('DD/MM/YYYY');
 
         const operations = [];
         for (const [user, tasks] of Object.entries(users)) {
-            const document = await collection.findOne({ username: user });
+            const document = await collection.findOne({ username: user }, { session });
             
             if (document) {
                 const prevSolved = document.solved?.[yesterdayDate] || 0;
@@ -112,14 +115,18 @@ async function updateMongoDB(users) {
         }
 
         if (operations.length > 0) {
-            await collection.bulkWrite(operations);
+            await collection.bulkWrite(operations, { session });
             console.log(`Updated ${operations.length} users`);
         }
 
+        await session.commitTransaction();
         return true;
     } catch (error) {
+        await session.abortTransaction();
         console.error('Error updating MongoDB:', error);
-        throw error; // Propagate the error
+        throw error;
+    } finally {
+        await session.endSession();
     }
 }
 
@@ -138,7 +145,7 @@ async function updateLeaderboard() {
         return true;
     } catch (error) {
         console.error('Error updating leaderboard:', error);
-        throw error; // Propagate the error
+        throw error;
     }
 }
 

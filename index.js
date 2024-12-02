@@ -26,31 +26,28 @@ if (!mongoURI) {
     process.exit(1);
 }
 
-// Connect to MongoDB
+// Connect to MongoDB with connection pooling
 const connectDB = async () => {
-    let retries = 5;
-    while (retries > 0) {
-        try {
-            if (mongoose.connection.readyState === 1) {
-                console.log('MongoDB already connected');
-                return;
-            }
-            await mongoose.connect(mongoURI, {
+    try {
+        if (mongoose.connection.readyState === 1) {
+            console.log('MongoDB already connected');
+            return mongoose.connection;
+        }
+
+        if (!global.mongoConnection) {
+            global.mongoConnection = await mongoose.connect(mongoURI, {
                 useNewUrlParser: true,
                 useUnifiedTopology: true,
-                serverSelectionTimeoutMS: 5000
+                serverSelectionTimeoutMS: 5000,
+                bufferCommands: false,
+                maxPoolSize: 10
             });
             console.log("Connected to MongoDB!");
-            return;
-        } catch (error) {
-            retries--;
-            if (retries === 0) {
-                console.error("Failed to connect to MongoDB after 5 attempts:", error);
-                process.exit(1);
-            }
-            console.log(`Failed to connect. Retrying... (${retries} attempts remaining)`);
-            await new Promise(resolve => setTimeout(resolve, 5000));
         }
+        return global.mongoConnection;
+    } catch (error) {
+        console.error("MongoDB connection error:", error);
+        throw error;
     }
 };
 
@@ -67,7 +64,7 @@ const User = mongoose.model("User", new mongoose.Schema({
 app.get("/", async (req, res, next) => {
     try {
         await connectDB();
-        const users = await User.find();
+        const users = await User.find().lean();
         const usersData = users.map(userData => {
             const timeline = Array(7).fill(false);
             const noOfDaysInWeek = 7;
@@ -113,6 +110,11 @@ app.post("/update", async (req, res, next) => {
     }
 });
 
+// Health check endpoint
+app.get("/health", (req, res) => {
+    res.json({ status: "healthy" });
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
     console.error('Error:', err);
@@ -121,26 +123,21 @@ app.use((err, req, res, next) => {
     res.status(statusCode).json({ error: message });
 });
 
-// Start server
-const startServer = async () => {
-    try {
-        await connectDB();
-        app.listen(port, () => {
-            console.log(`Server is running on port ${port}`);
-        });
-    } catch (error) {
-        console.error('Failed to start server:', error);
-        process.exit(1);
-    }
-};
+// For local development
+if (process.env.NODE_ENV !== 'production') {
+    const startServer = async () => {
+        try {
+            await connectDB();
+            app.listen(port, () => {
+                console.log(`Server is running on port ${port}`);
+            });
+        } catch (error) {
+            console.error('Failed to start server:', error);
+            process.exit(1);
+        }
+    };
 
-startServer();
+    startServer();
+}
 
-// Schedule regular updates
-setInterval(async () => {
-    try {
-        await updateLeaderboard();
-    } catch (error) {
-        console.error('Scheduled update failed:', error);
-    }
-}, 3600000);
+module.exports = app;
