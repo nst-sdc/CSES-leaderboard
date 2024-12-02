@@ -60,25 +60,12 @@ async function fetchCSESData() {
 
 // Function to update MongoDB
 async function updateMongoDB(users) {
-    if (!users) {
+    if (!users || Object.keys(users).length === 0) {
         console.log('No user data to update');
         return false;
     }
 
     try {
-        const uri = process.env.MONGODB_URI;
-        if (!uri) {
-            throw new Error('MongoDB URI not found in environment variables');
-        }
-
-        if (!mongoose.connection.readyState) {
-            await mongoose.connect(uri, {
-                useNewUrlParser: true,
-                useUnifiedTopology: true,
-                serverSelectionTimeoutMS: 5000
-            });
-        }
-
         const collection = mongoose.connection.collection('CSES');
         const todayDate = moment().format('DD/MM/YYYY');
         const yesterdayDate = moment().subtract(1, 'days').format('DD/MM/YYYY');
@@ -132,26 +119,26 @@ async function updateMongoDB(users) {
         return true;
     } catch (error) {
         console.error('Error updating MongoDB:', error);
-        return false;
+        throw error; // Propagate the error
     }
 }
 
 // Main function to fetch and update data
 async function updateLeaderboard() {
-    console.log('Starting leaderboard update:', new Date().toISOString());
     try {
+        console.log('Starting leaderboard update...');
         const users = await fetchCSESData();
-        if (users) {
-            const success = await updateMongoDB(users);
-            console.log('Update completed:', success ? 'successful' : 'failed');
-            return success;
-        } else {
-            console.log('No user data fetched');
-            return false;
+        
+        if (!users || Object.keys(users).length === 0) {
+            throw new Error('No user data received from CSES');
         }
+        
+        await updateMongoDB(users);
+        console.log('Leaderboard update completed successfully');
+        return true;
     } catch (error) {
-        console.error('Error in updateLeaderboard:', error.message);
-        return false;
+        console.error('Error updating leaderboard:', error);
+        throw error; // Propagate the error
     }
 }
 

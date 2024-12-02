@@ -14,18 +14,27 @@ const port = process.env.PORT || 3000;
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.json());
 
 // Log environment info
 console.log('Current directory:', __dirname);
 console.log('Views directory:', path.join(__dirname, 'views'));
 
-const mongoURI = process.env.MONGODB_URI ;
+const mongoURI = process.env.MONGODB_URI;
+if (!mongoURI) {
+    console.error('MONGODB_URI environment variable is not set');
+    process.exit(1);
+}
 
 // Connect to MongoDB
 const connectDB = async () => {
     let retries = 5;
     while (retries > 0) {
         try {
+            if (mongoose.connection.readyState === 1) {
+                console.log('MongoDB already connected');
+                return;
+            }
             await mongoose.connect(mongoURI, {
                 useNewUrlParser: true,
                 useUnifiedTopology: true,
@@ -50,12 +59,14 @@ const User = mongoose.model("User", new mongoose.Schema({
     username: String,
     solved: Object,
     streak: Number,
-    questionSolved: Number
+    questionSolved: Number,
+    lastUpdated: Date
 }), "CSES");
 
 // Routes
-app.get("/", async (req, res) => {
+app.get("/", async (req, res, next) => {
     try {
+        await connectDB();
         const users = await User.find();
         const usersData = users.map(userData => {
             const timeline = Array(7).fill(false);
@@ -65,14 +76,15 @@ app.get("/", async (req, res) => {
                 const reqDate = moment().subtract(index, 'days').format('DD/MM/YYYY');
                 const prevDate = moment().subtract(index + 1, 'days').format('DD/MM/YYYY');
                 
-                timeline[noOfDaysInWeek - index - 1] = parseInt(userData.solved[reqDate] || 0) > parseInt(userData.solved[prevDate] || 0);
+                timeline[noOfDaysInWeek - index - 1] = parseInt(userData.solved?.[reqDate] || 0) > parseInt(userData.solved?.[prevDate] || 0);
             }
             
             return {
                 name: userData.username,
                 timeline: timeline,
                 streak: userData.streak || 0,
-                questionSolved: userData.questionSolved || 0
+                questionSolved: userData.questionSolved || 0,
+                lastUpdated: userData.lastUpdated
             };
         });
         
@@ -81,51 +93,54 @@ app.get("/", async (req, res) => {
         
         res.render("index", { data: usersData });
     } catch (error) {
-        console.error("Error fetching data:", error);
-        res.status(500).json({ error: "Error fetching data", details: error.message });
+        next(error);
     }
 });
 
 // Manual update endpoint (protected)
-app.post("/update", async (req, res) => {
-    const apiKey = req.headers['x-api-key'];
-    if (apiKey !== process.env.API_KEY) {
-        return res.status(401).json({ error: "Unauthorized" });
-    }
-
+app.post("/update", async (req, res, next) => {
     try {
+        const apiKey = req.headers['x-api-key'];
+        if (apiKey !== process.env.API_KEY) {
+            return res.status(401).json({ error: "Unauthorized" });
+        }
+
+        await connectDB();
         await updateLeaderboard();
         res.json({ status: "success" });
     } catch (error) {
-        console.error("Error in manual update:", error);
-        res.status(500).json({ error: "Update failed" });
+        next(error);
     }
 });
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).send('Something broke!');
+    console.error('Error:', err);
+    const statusCode = err.statusCode || 500;
+    const message = err.message || 'Internal Server Error';
+    res.status(statusCode).json({ error: message });
 });
 
 // Start server
 const startServer = async () => {
-    await connectDB();
-    
-    // Initial update on server start
     try {
-        await updateLeaderboard();
-        console.log('Initial update completed');
+        await connectDB();
+        app.listen(port, () => {
+            console.log(`Server is running on port ${port}`);
+        });
     } catch (error) {
-        console.error('Initial update failed:', error);
+        console.error('Failed to start server:', error);
+        process.exit(1);
     }
-    
-    app.listen(port, () => {
-        console.log(`Server is running on port ${port}`);
-    });
 };
 
 startServer();
 
 // Schedule regular updates
-setInterval(updateLeaderboard, 3600000);
+setInterval(async () => {
+    try {
+        await updateLeaderboard();
+    } catch (error) {
+        console.error('Scheduled update failed:', error);
+    }
+}, 3600000);
