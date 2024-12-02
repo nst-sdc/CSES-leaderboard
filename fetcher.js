@@ -3,6 +3,7 @@ const cheerio = require('cheerio');
 const mongoose = require('mongoose');
 const moment = require('moment');
 require('dotenv').config();
+
 // Function to extract users from HTML
 function getUsers($) {
     const users = {};
@@ -64,7 +65,6 @@ async function updateMongoDB(users) {
         return false;
     }
 
-    let client;
     try {
         const uri = process.env.MONGODB_URI;
         if (!uri) {
@@ -74,7 +74,8 @@ async function updateMongoDB(users) {
         if (!mongoose.connection.readyState) {
             await mongoose.connect(uri, {
                 useNewUrlParser: true,
-                useUnifiedTopology: true
+                useUnifiedTopology: true,
+                serverSelectionTimeoutMS: 5000
             });
         }
 
@@ -82,49 +83,55 @@ async function updateMongoDB(users) {
         const todayDate = moment().format('DD/MM/YYYY');
         const yesterdayDate = moment().subtract(1, 'days').format('DD/MM/YYYY');
 
+        const operations = [];
         for (const [user, tasks] of Object.entries(users)) {
             const document = await collection.findOne({ username: user });
             
             if (document) {
-                let streak = parseInt(document.streak || 0);
-                const prevSolved = document.solved?.[yesterdayDate];
-                let currSolved = prevSolved;
-
-                if (prevSolved !== undefined && prevSolved < tasks) {
-                    streak = document.prevStreak + 1;
-                    currSolved = tasks;
-                } else {
-                    streak = 0;
+                const prevSolved = document.solved?.[yesterdayDate] || 0;
+                const currentStreak = document.streak || 0;
+                
+                let newStreak = 0;
+                if (tasks > prevSolved) {
+                    newStreak = currentStreak + 1;
                 }
 
-                document.solved = document.solved || {};
-                document.solved[todayDate] = currSolved;
-
-                await collection.updateOne(
-                    { username: user },
-                    {
-                        $set: {
-                            solved: document.solved,
-                            streak: streak,
-                            questionSolved: tasks,
-                            prevStreak: document.prevStreak || 0 
+                operations.push({
+                    updateOne: {
+                        filter: { username: user },
+                        update: {
+                            $set: {
+                                [`solved.${todayDate}`]: tasks,
+                                streak: newStreak,
+                                questionSolved: tasks,
+                                lastUpdated: new Date()
+                            }
                         }
                     }
-                );
+                });
             } else {
-                const data = {
-                    username: user,
-                    solved: { [todayDate]: tasks },
-                    streak: 0,
-                    questionSolved: tasks,
-                    prevStreak: 0
-                };
-                await collection.insertOne(data);
+                operations.push({
+                    insertOne: {
+                        document: {
+                            username: user,
+                            solved: { [todayDate]: tasks },
+                            streak: 0,
+                            questionSolved: tasks,
+                            lastUpdated: new Date()
+                        }
+                    }
+                });
             }
         }
+
+        if (operations.length > 0) {
+            await collection.bulkWrite(operations);
+            console.log(`Updated ${operations.length} users`);
+        }
+
         return true;
     } catch (error) {
-        console.error('Error updating MongoDB:', error.message);
+        console.error('Error updating MongoDB:', error);
         return false;
     }
 }

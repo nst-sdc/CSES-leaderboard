@@ -2,9 +2,7 @@ const express = require('express');
 const mongoose = require("mongoose");
 const moment = require('moment');
 const path = require('path');
-const cron = require('node-cron');
 const { updateLeaderboard } = require('./fetcher');
-
 
 moment().format();
 require('dotenv').config();
@@ -25,15 +23,25 @@ const mongoURI = process.env.MONGODB_URI ;
 
 // Connect to MongoDB
 const connectDB = async () => {
-    try {
-        await mongoose.connect(mongoURI, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true
-        });
-        console.log("Connected to MongoDB!");
-    } catch (error) {
-        console.error("MongoDB connection error:", error);
-        process.exit(1);
+    let retries = 5;
+    while (retries > 0) {
+        try {
+            await mongoose.connect(mongoURI, {
+                useNewUrlParser: true,
+                useUnifiedTopology: true,
+                serverSelectionTimeoutMS: 5000
+            });
+            console.log("Connected to MongoDB!");
+            return;
+        } catch (error) {
+            retries--;
+            if (retries === 0) {
+                console.error("Failed to connect to MongoDB after 5 attempts:", error);
+                process.exit(1);
+            }
+            console.log(`Failed to connect. Retrying... (${retries} attempts remaining)`);
+            await new Promise(resolve => setTimeout(resolve, 5000));
+        }
     }
 };
 
@@ -100,16 +108,6 @@ app.use((err, req, res, next) => {
     res.status(500).send('Something broke!');
 });
 
-// Schedule the update every 3 hours
-cron.schedule('0 */3 * * *', async () => {
-    console.log('Running scheduled update');
-    try {
-        await updateLeaderboard();
-    } catch (error) {
-        console.error('Scheduled update failed:', error);
-    }
-});
-
 // Start server
 const startServer = async () => {
     await connectDB();
@@ -126,5 +124,8 @@ const startServer = async () => {
         console.log(`Server is running on port ${port}`);
     });
 };
-setInterval(updateLeaderboard, 3600000);
+
 startServer();
+
+// Schedule regular updates
+setInterval(updateLeaderboard, 3600000);
