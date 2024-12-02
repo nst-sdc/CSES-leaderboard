@@ -2,7 +2,7 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 const mongoose = require('mongoose');
 const moment = require('moment');
-
+require('dotenv').config();
 // Function to extract users from HTML
 function getUsers($) {
     const users = {};
@@ -26,7 +26,7 @@ function getUsers($) {
 // Function to fetch CSES data
 async function fetchCSESData() {
     const cookies = {
-        PHPSESSID: process.env.CSES_PHPSESSID || 'b614b76259290f9aaccda2a2afdd428118304b9a'
+        PHPSESSID: process.env.PHPSESSID
     };
 
     const headers = {
@@ -91,7 +91,7 @@ async function updateMongoDB(users) {
                 let currSolved = prevSolved;
 
                 if (prevSolved !== undefined && prevSolved < tasks) {
-                    streak += (todayDate !== document.lastUpdate ? 1 : 0);
+                    streak = document.prevStreak + 1;
                     currSolved = tasks;
                 } else {
                     streak = 0;
@@ -107,7 +107,7 @@ async function updateMongoDB(users) {
                             solved: document.solved,
                             streak: streak,
                             questionSolved: tasks,
-                            lastUpdate: todayDate
+                            prevStreak: document.prevStreak || 0 
                         }
                     }
                 );
@@ -117,7 +117,7 @@ async function updateMongoDB(users) {
                     solved: { [todayDate]: tasks },
                     streak: 0,
                     questionSolved: tasks,
-                    lastUpdate: todayDate
+                    prevStreak: 0
                 };
                 await collection.insertOne(data);
             }

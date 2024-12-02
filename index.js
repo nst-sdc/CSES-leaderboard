@@ -5,7 +5,9 @@ const path = require('path');
 const cron = require('node-cron');
 const { updateLeaderboard } = require('./fetcher');
 
+
 moment().format();
+require('dotenv').config();
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -14,13 +16,12 @@ const port = process.env.PORT || 3000;
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.json());
 
 // Log environment info
 console.log('Current directory:', __dirname);
 console.log('Views directory:', path.join(__dirname, 'views'));
 
-const mongoURI = process.env.MONGODB_URI || "mongodb+srv://kanishkranjan17:kJjPjGDTqnlWZWEi@leaderboard.5gmx8.mongodb.net/leaderboard";
+const mongoURI = process.env.MONGODB_URI ;
 
 // Connect to MongoDB
 const connectDB = async () => {
@@ -42,7 +43,7 @@ const User = mongoose.model("User", new mongoose.Schema({
     solved: Object,
     streak: Number,
     questionSolved: Number
-}, { strict: false }), "CSES");
+}), "CSES");
 
 // Routes
 app.get("/", async (req, res) => {
@@ -56,12 +57,7 @@ app.get("/", async (req, res) => {
                 const reqDate = moment().subtract(index, 'days').format('DD/MM/YYYY');
                 const prevDate = moment().subtract(index + 1, 'days').format('DD/MM/YYYY');
                 
-                if (userData.solved && 
-                    userData.solved[reqDate] !== undefined && 
-                    userData.solved[prevDate] !== undefined) {
-                    timeline[noOfDaysInWeek - index - 1] = 
-                        parseInt(userData.solved[reqDate]) > parseInt(userData.solved[prevDate]);
-                }
+                timeline[noOfDaysInWeek - index - 1] = parseInt(userData.solved[reqDate] || 0) > parseInt(userData.solved[prevDate] || 0);
             }
             
             return {
@@ -130,5 +126,5 @@ const startServer = async () => {
         console.log(`Server is running on port ${port}`);
     });
 };
-
+setInterval(updateLeaderboard, 3600000);
 startServer();
