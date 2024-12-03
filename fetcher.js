@@ -2,6 +2,7 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 const mongoose = require('mongoose');
 const moment = require('moment');
+
 require('dotenv').config();
 
 // Function to extract users from HTML
@@ -60,92 +61,92 @@ async function fetchCSESData() {
 
 // Function to update MongoDB
 async function updateMongoDB(users) {
-    if (!users || Object.keys(users).length === 0) {
+    if (!users) {
         console.log('No user data to update');
         return false;
     }
 
-    const session = await mongoose.startSession();
+    let client;
     try {
-        session.startTransaction();
-        
+        const uri = process.env.MONGODB_URI;
+        if (!uri) {
+            throw new Error('MongoDB URI not found in environment variables');
+        }
+
+        if (!mongoose.connection.readyState) {
+            await mongoose.connect(uri, {
+                useNewUrlParser: true,
+                useUnifiedTopology: true
+            });
+        }
+
         const collection = mongoose.connection.collection('CSES');
         const todayDate = moment().format('DD/MM/YYYY');
         const yesterdayDate = moment().subtract(1, 'days').format('DD/MM/YYYY');
 
-        const operations = [];
         for (const [user, tasks] of Object.entries(users)) {
-            const document = await collection.findOne({ username: user }, { session });
+            const document = await collection.findOne({ username: user });
             
             if (document) {
-                const prevSolved = document.solved?.[yesterdayDate] || 0;
-                const currentStreak = document.streak || 0;
-                
-                let newStreak = 0;
-                if (tasks > prevSolved) {
-                    newStreak = currentStreak + 1;
+                let streak = parseInt(document.streak || 0);
+                const prevSolved = document.solved?.[yesterdayDate];
+                let currSolved = prevSolved;
+
+                if (prevSolved !== undefined && prevSolved < tasks) {
+                    streak = document.prevStreak + 1;
+                    currSolved = tasks;
+                } else {
+                    streak = 0;
                 }
 
-                operations.push({
-                    updateOne: {
-                        filter: { username: user },
-                        update: {
-                            $set: {
-                                [`solved.${todayDate}`]: tasks,
-                                streak: newStreak,
-                                questionSolved: tasks,
-                                lastUpdated: new Date()
-                            }
-                        }
-                    }
-                });
-            } else {
-                operations.push({
-                    insertOne: {
-                        document: {
-                            username: user,
-                            solved: { [todayDate]: tasks },
-                            streak: 0,
+                document.solved = document.solved || {};
+                document.solved[todayDate] = currSolved;
+
+                await collection.updateOne(
+                    { username: user },
+                    {
+                        $set: {
+                            solved: document.solved,
+                            streak: streak,
                             questionSolved: tasks,
-                            lastUpdated: new Date()
+                            prevStreak: document.streak  || 0
                         }
                     }
-                });
+                );
+            } else {
+                const data = {
+                    username: user,
+                    solved: { [todayDate]: tasks },
+                    streak: 0,
+                    questionSolved: tasks,
+                    prevStreak: 0
+                };
+                await collection.insertOne(data);
             }
         }
-
-        if (operations.length > 0) {
-            await collection.bulkWrite(operations, { session });
-            console.log(`Updated ${operations.length} users`);
-        }
-
-        await session.commitTransaction();
         return true;
     } catch (error) {
-        await session.abortTransaction();
-        console.error('Error updating MongoDB:', error);
-        throw error;
-    } finally {
-        await session.endSession();
+        console.error('Error updating MongoDB:', error.message);
+        return false;
     }
 }
 
 // Main function to fetch and update data
 async function updateLeaderboard() {
+    console.log('Starting leaderboard update:', new Date().toISOString());
     try {
-        console.log('Starting leaderboard update...');
         const users = await fetchCSESData();
-        
-        if (!users || Object.keys(users).length === 0) {
-            throw new Error('No user data received from CSES');
+        if (users) {
+            const success = await updateMongoDB(users);
+            console.log('Update completed:', success ? 'successful' : 'failed');
+            return success;
+        } else {
+            console.log('No user data fetched');
+            return false;
         }
-        
-        await updateMongoDB(users);
-        console.log('Leaderboard update completed successfully');
-        return true;
     } catch (error) {
-        console.error('Error updating leaderboard:', error);
-        throw error;
+        console.error('Error in updateLeaderboard:', error.message);
+        return false;
     }
 }
 
