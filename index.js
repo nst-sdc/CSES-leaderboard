@@ -138,7 +138,7 @@ const startServer = async () => {
     }
     
     app.listen(port, () => {
-        console.log(`Server is running on port ${port}`);
+        console.log(`Server is 2 running on port ${port}`);
     });
 };
 // setInterval(updateLeaderboard, 3600000);

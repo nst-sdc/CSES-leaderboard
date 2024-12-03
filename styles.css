@@ -1,0 +1,165 @@
+/* Typography */
+.rubik-p {
+    font-family: "Rubik", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 300;
+    font-style: normal;
+    color: rgba(255, 255, 255, 0.8); /* Softer text for readability */
+  }
+  
+  .rubik-h, .rubik-hmain, .rubik-hmain2, .rubik-hmain3 {
+    font-family: "Rubik", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 600;
+    font-style: normal;
+  }
+  
+  .rubik-hmain {
+    font-size: xxx-large;
+    background: linear-gradient(90deg, #dfbac9, #cdc3ee);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  
+  .rubik-hmain2 {
+    font-size: xx-large;
+    background: linear-gradient(90deg, #dfbac9, #cdc3ee);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  
+  .rubik-hmain3 {
+    font-size: x-large;
+    background: linear-gradient(90deg, #dfbac9, #cdc3ee);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 15px;
+  }
+  
+  /* Background */
+  body {
+    background-color: black;
+    margin: 0;
+    font-family: "Rubik", sans-serif;
+  }
+  
+  /* Profile Card */
+  .profile_card {
+    background-color: rgb(22, 22, 22);
+    padding: 30px;
+    width: 300px;
+    border-radius: 35px;
+    border: 1px solid rgb(48, 48, 51);
+    color: #fff;
+    margin-left: 30px;
+    position: fixed;
+    left: 30px;
+    top: 50%;
+    transform: translateY(-50%);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  }
+  
+  .avatar-img {
+    width: 100%;
+    border-radius: 35px;
+    border: 1px solid rgb(48, 48, 51);
+  }
+  
+  /* Profile Bottom Section */
+  .profile_bot {
+    background: linear-gradient(to right, #e1b9c5, #d0c2e9);
+    border-radius: 25px;
+    width: 85%;
+    padding: 20px;
+    margin-top: 15px;
+    text-align: center;
+    color: #000;
+    margin-bottom: -60px;
+  }
+  
+  /* Main Content */
+  .main {
+    margin-top: 40px;
+    margin-left: 460px;
+    color: rgba(255, 255, 255, 0.75);
+  }
+  
+  /* Links */
+  a {
+    color: white;
+    text-decoration: none;
+  }
+  
+  a:hover {
+    color: rgb(223, 185, 201);
+  }
+  
+  a:active {
+    color: rgb(208, 193, 231);
+  }
+  
+  /* Icons */
+  .icons {
+    display: inline;
+    height: 30px;
+    width: 30px;
+    margin-right: 5px;
+  }
+  
+  .graph-container {
+    display: grid;
+    grid-template-rows: repeat(7, 15px); /* Days go from top to bottom */
+    grid-auto-flow: column; /* Columns represent weeks */
+    gap: 2px;
+  }
+  .day {
+    width: 15px;
+    height: 15px;
+    background-color: rgb(48,48,51);
+    border-radius: 2px;
+    position: relative;
+  }
+  .day[data-count="1"] { background-color: #0d4429 }
+  .day[data-count="2"] { background-color: #016c31 }
+  .day[data-count="3"] { background-color: #26a641 }
+  .day[data-count="4"] { background-color: #39d353; }
+  .tooltip {
+    display: none;
+    position: absolute;
+    background: #000;
+    color: #fff;
+    padding: 5px;
+    border-radius: 3px;
+    font-size: 10px;
+    white-space: nowrap;
+    z-index: 10;
+    pointer-events: none;
+  }
+  .day:hover .tooltip {
+    display: block;
+    top: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  .month-labels {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 5px;
+  }
+  .day-labels {
+    display: grid;
+    grid-template-rows: repeat(7, 15px);
+    gap: 2px;
+  }
+  .day-label {
+    font-size: 10px;
+    color: #666;
+    text-align: right;
+    margin-right: 5px;
+  }
+  .months {
+    margin-top: 20px;
+  }

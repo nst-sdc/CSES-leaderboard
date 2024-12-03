@@ -90,7 +90,7 @@ async function updateMongoDB(users) {
             if (document) {
                 let streak = parseInt(document.streak || 0);
                 const prevSolved = document.solved?.[yesterdayDate];
-                let currSolved = prevSolved;
+                let currSolved = prevSolved ;
 
                 if (prevSolved !== undefined && prevSolved < tasks) {
                     streak = document.prevStreak + 1;
@@ -100,8 +100,8 @@ async function updateMongoDB(users) {
                 }
 
                 document.solved = document.solved || {};
-                document.solved[todayDate] = currSolved;
-
+                document.solved[todayDate] = currSolved ?? tasks;
+                
                 await collection.updateOne(
                     { username: user },
                     {
