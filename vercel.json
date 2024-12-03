@@ -8,14 +8,6 @@
     ],
     "routes": [
         {
-            "src": "/health",
-            "dest": "index.js"
-        },
-        {
-            "src": "/update",
-            "dest": "index.js"
-        },
-        {
             "src": "/(.*)",
             "dest": "index.js"
         }
@@ -25,11 +17,5 @@
             "path": "/update",
             "schedule": "0 */3 * * *"
         }
-    ],
-    "functions": {
-        "index.js": {
-            "memory": 1024,
-            "maxDuration": 10
-        }
-    }
+    ]
 }
