@@ -4,32 +4,20 @@
         {
             "src": "index.js",
             "use": "@vercel/node"
+        },
+        {
+            "src": "public/**",
+            "use": "@vercel/static"
         }
     ],
     "routes": [
         {
-            "src": "/health",
-            "dest": "index.js"
+            "src": "/public/(.*)",
+            "dest": "/public/$1"
         },
         {
-            "src": "/update",
-            "dest": "index.js"
-        },
-        {
-            "src": "/(.*)",
+            "src": "/.*",
             "dest": "index.js"
         }
-    ],
-    "crons": [
-        {
-            "path": "/update",
-            "schedule": "0 */3 * * *"
-        }
-    ],
-    "functions": {
-        "index.js": {
-            "memory": 1024,
-            "maxDuration": 10
-        }
-    }
+    ]
 }
